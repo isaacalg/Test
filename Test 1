@@ -1,0 +1,51 @@
+function onEdit(e) {
+  var sheet = e.source.getActiveSheet();
+  var editedCell = e.range;
+
+  // Check if the edit is within Column A
+  if (editedCell.getColumn() === 1) {
+    checkDuplicatesAndUpdateColumnB(sheet);
+    checkColumnAandColumnC(sheet);
+  }
+}
+
+function checkDuplicatesAndUpdateColumnB(sheet) {
+  var data = sheet.getRange("A2:A" + sheet.getLastRow()).getValues();
+  var duplicateTracker = {};
+  
+  // Reset Column B
+  var rangeB = sheet.getRange("B2:B" + sheet.getLastRow());
+  rangeB.clearContent();
+  rangeB.setBackground("white");
+  
+  for (var i = 0; i < data.length; i++) {
+    var value = data[i][0];
+    if (value) {
+      if (duplicateTracker[value]) {
+        // Duplicate found
+        sheet.getRange("B" + (i + 2)).setValue("Duplicate label").setBackground("red");
+      } else {
+        duplicateTracker[value] = true;
+      }
+    }
+  }
+}
+
+function checkColumnAandColumnC(sheet) {
+  var range = sheet.getRange("A2:A" + sheet.getLastRow());
+  var data = range.getValues();
+
+  for (var i = 0; i < data.length; i++) {
+    var valueA = data[i][0];
+    var cellC = sheet.getRange("C" + (i + 2));
+
+    if (valueA && !cellC.getValue()) {
+      // Column A is not empty, Column C should not be empty
+      cellC.setBackground("yellow"); // Optional: set a color to highlight the required cell
+      cellC.setNote("Please fill this cell");
+    } else {
+      cellC.setBackground("white");
+      cellC.clearNote();
+    }
+  }
+}
