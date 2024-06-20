@@ -1,45 +1,66 @@
 function onEdit(e) {
-  const range = e.range;
-  const col = range.getColumn();
-  const row = range.getRow();
-  const sheet = e.source.getActiveSheet();
-  const sheetName = sheet.getName();
+  
+  let range = e.range;
+  let col = range.getColumn();
+  let row = range.getRow();
+  let sheet = e.source.getActiveSheet();
+  let sheetName = e.source.getActiveSheet().getName();
 
-  // Handle timestamp and modifiedBy for all edited cells in the range
-  if (sheetName == 'Device List' && col != 6 && col != 7 && row != 1) {
+  if (sheetName == 'Device List' && col != 6 && col != 7 && row != 1){
     let ss = SpreadsheetApp.getActiveSpreadsheet();
     let timeStamp = new Date();
-    let modifiedBy = Session.getActiveUser().getEmail();
+    let sheet = ss.getSheetByName(sheetName);
+    sheet.getRange(row,6).setValue(timeStamp);
+  }
 
-    for (let i = 0; i < range.getNumRows(); i++) {
-      const currentRow = row + i;
-      sheet.getRange(currentRow, 6).setValue(timeStamp);
-      sheet.getRange(currentRow, 7).setValue(modifiedBy);
+  if (sheetName == 'Device List' && col != 6 && col != 7 && row != 1){
+    let ss = SpreadsheetApp.getActiveSpreadsheet();
+    let modifiedBy = Session.getActiveUser().getEmail();
+    let sheet = ss.getSheetByName(sheetName);
+    sheet.getRange(row,7).setValue(modifiedBy);
+  }
+
+  makeCaps(range); 
+
+  if (range.getColumn() === 1) {
+    findDuplicates(sheet);
+  }
+
+  if (sheetName == 'Device List' && range.getColumn() == 1){
+    const cell = range;
+    const cellvalue = range.getValue();
+    const nextCell = range.offset(0,1);
+
+    if (cellvalue.startsWith("CR ")) {
+      nextCell.setValue("Access");
+      cell.setBackground("white");
+    } else if (cellvalue.startsWith("CAM ")){
+      nextCell.setValue("CCTV");
+      cell.setBackground("white");
+    } else if (cellvalue.startsWith("I ")) {
+      nextCell.setValue("Intercom");
+      cell.setBackground("white");
+    } else if(cellvalue.startsWith("M ")) {
+      nextCell.setValue("Monitor Point");
+      cell.setBackground("white");
+    } else if (cellvalue === "") {
+      nextCell.clearContent();
+    } else {
+      nextCell.setValue("INCORRECT LABEL");
+      cell.setBackground("#ea9999");
+      nextCell.setBackground("#ea9999");
     }
   }
 
-  // Handle duplicate marking and label setting for column A
-  if (sheetName == 'Device List' && col == 1) {
-    markDuplicates(sheet);
-    handleLabels(sheet, range);
-  }
-
-  // Apply capital letters for edited range
-  makeCaps(range);
-
-  // Check columns filled logic
   columnsFilled(sheet);
 }
 
 function makeCaps(range) {
-  const values = range.getValues();
-  for (let i = 0; i < values.length; i++) {
-    values[i][0] = values[i][0].toString().toUpperCase();
-  }
-  range.setValues(values);
+  const value = range.getValue();
+  range.setValue(value.toString().toUpperCase());
 }
 
-function markDuplicates(sheet) {
+function findDuplicates(sheet) {
   const data = sheet.getRange("A2:A" + sheet.getLastRow()).getValues();
   let duplicateTracker = {};
 
@@ -50,50 +71,14 @@ function markDuplicates(sheet) {
         sheet.getRange("B" + (i + 2)).setValue("Duplicate label").setBackground("#ea9999");
       } else {
         duplicateTracker[value] = true;
-        sheet.getRange("B" + (i + 2)).setValue("").setBackground("white"); // Reset previous marking
       }
     }
   }
 }
 
-function handleLabels(sheet, range) {
-  const startRow = range.getRow();
-  const numRows = range.getNumRows();
-
-  for (let i = 0; i < numRows; i++) {
-    const currentRow = startRow + i;
-    const cell = sheet.getRange(currentRow, 1); // Column A
-    const cellValue = cell.getValue();
-    const nextCell = cell.offset(0, 1); // Column B
-
-    if (cell.isBlank()) {
-      nextCell.clearContent();
-      cell.setBackground("white");
-      continue; // Skip processing for blank cells
-    }
-
-    if (cellValue.startsWith("CR ")) {
-      nextCell.setValue("Access");
-      cell.setBackground("white");
-    } else if (cellValue.startsWith("CAM ")) {
-      nextCell.setValue("CCTV");
-      cell.setBackground("white");
-    } else if (cellValue.startsWith("I ")) {
-      nextCell.setValue("Intercom");
-      cell.setBackground("white");
-    } else if (cellValue.startsWith("M ")) {
-      nextCell.setValue("Monitor Point");
-      cell.setBackground("white");
-    } else {
-      nextCell.setValue("INCORRECT LABEL");
-      cell.setBackground("#ea9999");
-      nextCell.setBackground("#ea9999");
-    }
-  }
-}
-
 function columnsFilled(sheet) {
-  const data = sheet.getRange("A2:A" + sheet.getLastRow()).getValues();
+  var range = sheet.getRange("A2:A" + sheet.getLastRow());
+  var data = range.getValues();
 
   for (let row = 0; row < data.length; row++) {
     const valueA = data[row][0];
@@ -117,7 +102,7 @@ function columnsFilled(sheet) {
       cellD.clearNote();
     }
 
-    if (valueA && !cellE.getValue()) {
+     if (valueA && !cellE.getValue()) {
       cellE.setBackground("#ea9999");
       cellE.setNote("Please add Stage (STAGE X)");
     } else {
