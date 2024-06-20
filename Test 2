@@ -1,0 +1,56 @@
+function onEdit(e) {
+  checkDuplicates(e);
+  checkColumns(e);
+}
+
+function checkDuplicates(e) {
+  var sheet = e.source.getActiveSheet();
+  var range = e.range;
+  var editedValue = range.getValue();
+  var editedRow = range.getRow();
+  var column = range.getColumn();
+  
+  if (column == 1 && editedValue !== "") {
+    var data = sheet.getRange('A:A').getValues();
+    var isDuplicate = false;
+    
+    for (var i = 0; i < data.length; i++) {
+      if (i + 1 !== editedRow && data[i][0] === editedValue) {
+        isDuplicate = true;
+        sheet.getRange(editedRow, 1).setBackground('red');
+        sheet.getRange(i + 1, 1).setBackground('red');
+        sheet.getRange(editedRow + 1, 2).setValue('DUPLICATE LABEL').setBackground('red');
+        break;
+      }
+    }
+    
+    if (!isDuplicate) {
+      sheet.getRange(editedRow, 1).setBackground(null);
+      sheet.getRange(editedRow + 1, 2).setValue('').setBackground(null);
+    }
+  }
+}
+
+function checkColumns(e) {
+  var sheet = e.source.getActiveSheet();
+  var range = e.range;
+  var editedRow = range.getRow();
+  var column = range.getColumn();
+  
+  if (column == 1 && range.getValue() !== "") {
+    var colD = sheet.getRange(editedRow, 4);
+    var colE = sheet.getRange(editedRow, 5);
+    
+    if (colD.getValue() === "") {
+      colD.setBackground('yellow');
+    } else {
+      colD.setBackground(null);
+    }
+    
+    if (colE.getValue() === "") {
+      colE.setBackground('yellow');
+    } else {
+      colE.setBackground(null);
+    }
+  }
+}
