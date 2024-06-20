@@ -1,59 +1,23 @@
 function onEdit(e) {
-  
   let range = e.range;
   let col = range.getColumn();
   let row = range.getRow();
   let sheet = e.source.getActiveSheet();
   let sheetName = e.source.getActiveSheet().getName();
 
-  if (sheetName == 'Device List' && col != 6 && col != 7 && row != 1){
+  if (sheetName == 'Device List' && col != 6 && col != 7 && row != 1) {
     let ss = SpreadsheetApp.getActiveSpreadsheet();
     let timeStamp = new Date();
-    let sheet = ss.getSheetByName(sheetName);
-    sheet.getRange(row,6).setValue(timeStamp);
-  }
-
-  if (sheetName == 'Device List' && col != 6 && col != 7 && row != 1){
-    let ss = SpreadsheetApp.getActiveSpreadsheet();
+    sheet.getRange(row, 6).setValue(timeStamp);
     let modifiedBy = Session.getActiveUser().getEmail();
-    let sheet = ss.getSheetByName(sheetName);
-    sheet.getRange(row,7).setValue(modifiedBy);
+    sheet.getRange(row, 7).setValue(modifiedBy);
   }
 
-  makeCaps(range); 
+  makeCaps(range);
 
-  if (range.getColumn() === 1) {
+  if (sheetName == 'Device List' && col == 1) {
     findDuplicates(sheet);
-  }
-
-  if (sheetName == 'Device List' && range.getColumn() == 1){
-    const cell = range;
-    const cellValue = range.getValue();
-    const nextCell = range.offset(0,1);
-
-    if (isUniqueLabel(sheet, cellValue, row)) {
-      if (cellValue.startsWith("CR ")) {
-        nextCell.setValue("Access");
-        cell.setBackground("white");
-      } else if (cellValue.startsWith("CAM ")) {
-        nextCell.setValue("CCTV");
-        cell.setBackground("white");
-      } else if (cellValue.startsWith("I ")) {
-        nextCell.setValue("Intercom");
-        cell.setBackground("white");
-      } else if (cellValue.startsWith("M ")) {
-        nextCell.setValue("Monitor Point");
-        cell.setBackground("white");
-      } else if (cellValue === "") {
-        nextCell.clearContent();
-      } else {
-        nextCell.setValue("INCORRECT LABEL");
-        cell.setBackground("#ea9999");
-        nextCell.setBackground("#ea9999");
-      }
-    } else {
-      nextCell.clearContent();
-    }
+    handleLabel(sheet, range, row);
   }
 
   columnsFilled(sheet);
@@ -77,6 +41,36 @@ function findDuplicates(sheet) {
         duplicateTracker[value] = true;
       }
     }
+  }
+}
+
+function handleLabel(sheet, range, row) {
+  const cell = range;
+  const cellValue = range.getValue();
+  const nextCell = range.offset(0, 1);
+
+  if (isUniqueLabel(sheet, cellValue, row)) {
+    if (cellValue.startsWith("CR ")) {
+      nextCell.setValue("Access");
+      cell.setBackground("white");
+    } else if (cellValue.startsWith("CAM ")) {
+      nextCell.setValue("CCTV");
+      cell.setBackground("white");
+    } else if (cellValue.startsWith("I ")) {
+      nextCell.setValue("Intercom");
+      cell.setBackground("white");
+    } else if (cellValue.startsWith("M ")) {
+      nextCell.setValue("Monitor Point");
+      cell.setBackground("white");
+    } else if (cellValue === "") {
+      nextCell.clearContent();
+    } else {
+      nextCell.setValue("INCORRECT LABEL");
+      cell.setBackground("#ea9999");
+      nextCell.setBackground("#ea9999");
+    }
+  } else {
+    nextCell.clearContent();
   }
 }
 
