@@ -1,0 +1,132 @@
+function onEdit(e) {
+  let range = e.range;
+  let col = range.getColumn();
+  let row = range.getRow();
+  let sheet = e.source.getActiveSheet();
+  let sheetName = e.source.getActiveSheet().getName();
+
+  if (sheetName == 'Device List' && col != 6 && col != 7 && row != 1) {
+    let ss = SpreadsheetApp.getActiveSpreadsheet();
+    let timeStamp = new Date();
+    sheet.getRange(row, 6).setValue(timeStamp);
+    let modifiedBy = Session.getActiveUser().getEmail();
+    sheet.getRange(row, 7).setValue(modifiedBy);
+  }
+
+  makeCaps(range);
+
+  if (sheetName == 'Device List' && col == 1) {
+    if (!markDuplicates(sheet, range, row)) {
+      handleLabel(sheet, range, row);
+    }
+  }
+
+  columnsFilled(sheet);
+}
+
+function makeCaps(range) {
+  const value = range.getValue();
+  range.setValue(value.toString().toUpperCase());
+}
+
+function markDuplicates(sheet, range, currentRow) {
+  const data = sheet.getRange("A2:A" + sheet.getLastRow()).getValues();
+  let duplicateTracker = {};
+  let isDuplicate = false;
+
+  for (let i = 0; i < data.length; i++) {
+    let value = data[i][0];
+    if (value) {
+      if (duplicateTracker[value]) {
+        sheet.getRange("B" + (i + 2)).setValue("Duplicate label").setBackground("#ea9999");
+        if ((i + 2) === currentRow) {
+          isDuplicate = true;
+        }
+      } else {
+        duplicateTracker[value] = true;
+      }
+    }
+  }
+
+  if (isDuplicate) {
+    range.offset(0, 1).setValue("Duplicate label").setBackground("#ea9999");
+  }
+
+  return isDuplicate;
+}
+
+function handleLabel(sheet, range, row) {
+  const cell = range;
+  const cellValue = range.getValue();
+  const nextCell = range.offset(0, 1);
+
+  if (isUniqueLabel(sheet, cellValue, row)) {
+    if (cellValue.startsWith("CR ")) {
+      nextCell.setValue("Access");
+      cell.setBackground("white");
+    } else if (cellValue.startsWith("CAM ")) {
+      nextCell.setValue("CCTV");
+      cell.setBackground("white");
+    } else if (cellValue.startsWith("I ")) {
+      nextCell.setValue("Intercom");
+      cell.setBackground("white");
+    } else if (cellValue.startsWith("M ")) {
+      nextCell.setValue("Monitor Point");
+      cell.setBackground("white");
+    } else if (cellValue === "") {
+      nextCell.clearContent();
+    } else {
+      nextCell.setValue("INCORRECT LABEL");
+      cell.setBackground("#ea9999");
+      nextCell.setBackground("#ea9999");
+    }
+  } else {
+    nextCell.clearContent();
+  }
+}
+
+function columnsFilled(sheet) {
+  var range = sheet.getRange("A2:A" + sheet.getLastRow());
+  var data = range.getValues();
+
+  for (let row = 0; row < data.length; row++) {
+    const valueA = data[row][0];
+    const cellC = sheet.getRange("C" + (row + 2));
+    const cellD = sheet.getRange("D" + (row + 2));
+    const cellE = sheet.getRange("E" + (row + 2));
+
+    if (valueA && !cellC.getValue()) {
+      cellC.setBackground("#ea9999");
+      cellC.setNote("Please change status");
+    } else {
+      cellC.setBackground("white");
+      cellC.clearNote();
+    }
+
+    if (valueA && !cellD.getValue()) {
+      cellD.setBackground("#ea9999");
+      cellD.setNote("Please add Project Name (CDRXXXXX)");
+    } else {
+      cellD.setBackground("white");
+      cellD.clearNote();
+    }
+
+    if (valueA && !cellE.getValue()) {
+      cellE.setBackground("#ea9999");
+      cellE.setNote("Please add Stage (STAGE X)");
+    } else {
+      cellE.setBackground("white");
+      cellE.clearNote();
+    }
+  }
+}
+
+function isUniqueLabel(sheet, value, currentRow) {
+  const data = sheet.getRange("A2:A" + sheet.getLastRow()).getValues();
+  for (let i = 0; i < data.length; i++) {
+    if (data[i][0] === value && (i + 2) !== currentRow) {
+      return false;
+    }
+  }
+  return true;
+}
