@@ -1,0 +1,132 @@
+function onEdit(e) {
+  const range = e.range;
+  const sheet = e.source.getActiveSheet();
+  const sheetName = sheet.getName();
+  const startRow = range.getRow();
+  const numRows = range.getNumRows();
+  const numCols = range.getNumColumns();
+
+  if (sheetName === 'Device List') {
+    const editedValues = range.getValues();
+    const timestamps = [];
+    const modifiedByEmails = [];
+    const userEmail = Session.getActiveUser().getEmail();
+    const currentTime = new Date();
+
+    for (let i = 0; i < numRows; i++) {
+      for (let j = 0; j < numCols; j++) {
+        const row = startRow + i;
+        const col = range.getColumn() + j;
+        const cellValue = editedValues[i][j].toString().toUpperCase();
+        if (col !== 6 && col !== 7 && row !== 1) {
+          timestamps.push([row, 6, currentTime]);
+          modifiedByEmails.push([row, 7, userEmail]);
+        }
+        if (col === 1) {
+          handleLabel(sheet, row, cellValue);
+        }
+        range.getCell(i + 1, j + 1).setValue(cellValue);
+      }
+    }
+    applyBatchUpdates(sheet, timestamps, modifiedByEmails);
+    columnsFilled(sheet);
+  }
+}
+
+function applyBatchUpdates(sheet, timestamps, modifiedByEmails) {
+  const timestampRange = sheet.getRangeList(timestamps.map(item => `F${item[0]}`));
+  const modifiedByRange = sheet.getRangeList(modifiedByEmails.map(item => `G${item[0]}`));
+  timestampRange.setValues(timestamps.map(item => [item[2]]));
+  modifiedByRange.setValues(modifiedByEmails.map(item => [item[2]]));
+}
+
+function handleLabel(sheet, row, cellValue) {
+  const cell = sheet.getRange(row, 1);
+  const nextCell = sheet.getRange(row, 2);
+  const unique = isUniqueLabel(sheet, cellValue, row);
+
+  if (unique) {
+    let label;
+    let color = "white";
+    switch (true) {
+      case cellValue.startsWith("CR "):
+        label = "Access";
+        break;
+      case cellValue.startsWith("CAM "):
+        label = "CCTV";
+        break;
+      case cellValue.startsWith("I "):
+        label = "Intercom";
+        break;
+      case cellValue.startsWith("M "):
+        label = "Monitor Point";
+        break;
+      case cellValue === "":
+        nextCell.clearContent();
+        return;
+      default:
+        label = "INCORRECT LABEL";
+        color = "#f9cb9c";
+    }
+    nextCell.setValue(label).setBackground(color);
+    cell.setBackground(color);
+  } else {
+    nextCell.clearContent();
+  }
+}
+
+function columnsFilled(sheet) {
+  const data = sheet.getRange("A2:A" + sheet.getLastRow()).getValues();
+  const updateRanges = [];
+
+  for (let row = 0; row < data.length; row++) {
+    const valueA = data[row][0];
+    const rowIndex = row + 2; // Adjust for header row
+    const cells = [
+      sheet.getRange("A" + rowIndex),
+      sheet.getRange("B" + rowIndex),
+      sheet.getRange("C" + rowIndex),
+      sheet.getRange("D" + rowIndex),
+      sheet.getRange("E" + rowIndex),
+    ];
+
+    if (!valueA) {
+      updateRanges.push({ cell: cells[0], background: "white" });
+      updateRanges.push({ cell: cells[1], background: "white" });
+    }
+    updateCellBackgroundAndNote(cells[2], valueA, "Please change status", "#ea9999", updateRanges);
+    updateCellBackgroundAndNote(cells[3], valueA, "Please add Project Name (CDRXXXXX)", "#f9cb9c", updateRanges);
+    updateCellBackgroundAndNote(cells[4], valueA, "Please add Stage (STAGE X)", "#f9cb9c", updateRanges);
+  }
+
+  applyBackgroundAndNoteUpdates(updateRanges);
+}
+
+function updateCellBackgroundAndNote(cell, condition, note, color, updateRanges) {
+  if (condition && !cell.getValue()) {
+    updateRanges.push({ cell: cell, background: color, note: note });
+  } else {
+    updateRanges.push({ cell: cell, background: "white", note: "" });
+  }
+}
+
+function applyBackgroundAndNoteUpdates(updateRanges) {
+  updateRanges.forEach(item => {
+    item.cell.setBackground(item.background);
+    if (item.note) {
+      item.cell.setNote(item.note);
+    } else {
+      item.cell.clearNote();
+    }
+  });
+}
+
+function isUniqueLabel(sheet, value, currentRow) {
+  const data = sheet.getRange("A2:A" + sheet.getLastRow()).getValues();
+  for (let i = 0; i < data.length; i++) {
+    if (data[i][0] === value && (i + 2) !== currentRow) {
+      return false;
+    }
+  }
+  return true;
+}
