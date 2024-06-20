@@ -18,7 +18,7 @@ function onEdit(e) {
     }
   }
 
-  // Handle duplicate marking and label setting for the range
+  // Handle duplicate marking and label setting for column A
   if (sheetName == 'Device List' && col == 1) {
     markDuplicates(sheet);
     handleLabels(sheet, range);
@@ -50,6 +50,7 @@ function markDuplicates(sheet) {
         sheet.getRange("B" + (i + 2)).setValue("Duplicate label").setBackground("#ea9999");
       } else {
         duplicateTracker[value] = true;
+        sheet.getRange("B" + (i + 2)).setValue("").setBackground("white"); // Reset previous marking
       }
     }
   }
@@ -71,37 +72,25 @@ function handleLabels(sheet, range) {
       continue; // Skip processing for blank cells
     }
 
-    let labelSet = false;
-
     if (cellValue.startsWith("CR ")) {
       nextCell.setValue("Access");
       cell.setBackground("white");
-      labelSet = true;
     } else if (cellValue.startsWith("CAM ")) {
       nextCell.setValue("CCTV");
       cell.setBackground("white");
-      labelSet = true;
     } else if (cellValue.startsWith("I ")) {
       nextCell.setValue("Intercom");
       cell.setBackground("white");
-      labelSet = true;
     } else if (cellValue.startsWith("M ")) {
       nextCell.setValue("Monitor Point");
       cell.setBackground("white");
-      labelSet = true;
     } else {
       nextCell.setValue("INCORRECT LABEL");
       cell.setBackground("#ea9999");
       nextCell.setBackground("#ea9999");
     }
-
-    // Clear next cell if label was set successfully
-    if (!labelSet) {
-      nextCell.clearContent();
-    }
   }
 }
-
 
 function columnsFilled(sheet) {
   const data = sheet.getRange("A2:A" + sheet.getLastRow()).getValues();
@@ -136,14 +125,4 @@ function columnsFilled(sheet) {
       cellE.clearNote();
     }
   }
-}
-
-function isUniqueLabel(sheet, value, currentRow) {
-  const data = sheet.getRange("A2:A" + sheet.getLastRow()).getValues();
-  for (let i = 0; i < data.length; i++) {
-    if (data[i][0] === value && (i + 2) !== currentRow) {
-      return false;
-    }
-  }
-  return true;
 }
