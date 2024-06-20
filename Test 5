@@ -64,21 +64,25 @@ function handleLabel(sheet, range, row) {
     if (cellValue.startsWith("CR ")) {
       nextCell.setValue("Access");
       cell.setBackground("white");
+      nextCell.setBackground("white");
     } else if (cellValue.startsWith("CAM ")) {
       nextCell.setValue("CCTV");
       cell.setBackground("white");
+      nextCell.setBackground("white");
     } else if (cellValue.startsWith("I ")) {
       nextCell.setValue("Intercom");
       cell.setBackground("white");
+      nextCell.setBackground("white");
     } else if (cellValue.startsWith("M ")) {
       nextCell.setValue("Monitor Point");
       cell.setBackground("white");
+      nextCell.setBackground("white");
     } else if (cellValue === "") {
       nextCell.clearContent();
     } else {
       nextCell.setValue("INCORRECT LABEL");
-      cell.setBackground("#ea9999");
-      nextCell.setBackground("#ea9999");
+      cell.setBackground("#f9cb9c");
+      nextCell.setBackground("#f9cb9c");
     }
   } else {
     nextCell.clearContent();
@@ -91,10 +95,18 @@ function columnsFilled(sheet) {
 
   for (let row = 0; row < data.length; row++) {
     const valueA = data[row][0];
+    const cellA = sheet.getRange("A" + (row + 2))
+    const cellB = sheet.getRange("B" + (row + 2))
     const cellC = sheet.getRange("C" + (row + 2));
     const cellD = sheet.getRange("D" + (row + 2));
     const cellE = sheet.getRange("E" + (row + 2));
 
+    if (!valueA) {
+      cellA.setBackground("white");
+      cellB.setBackground("white");
+    }
+ 
+    
     if (valueA && !cellC.getValue()) {
       cellC.setBackground("#ea9999");
       cellC.setNote("Please change status");
@@ -104,7 +116,7 @@ function columnsFilled(sheet) {
     }
 
     if (valueA && !cellD.getValue()) {
-      cellD.setBackground("#ea9999");
+      cellD.setBackground("#f9cb9c");
       cellD.setNote("Please add Project Name (CDRXXXXX)");
     } else {
       cellD.setBackground("white");
@@ -112,7 +124,7 @@ function columnsFilled(sheet) {
     }
 
     if (valueA && !cellE.getValue()) {
-      cellE.setBackground("#ea9999");
+      cellE.setBackground("#f9cb9c");
       cellE.setNote("Please add Stage (STAGE X)");
     } else {
       cellE.setBackground("white");
