@@ -1,20 +1,7 @@
-function findNewSublists() {
-  // Define the two lists of lists
-  var list1 = [
-    ["value1", "value2", "value3"],
-    ["value4", "value5", "value6"],
-    ["value7", "value8", "value9"]
-  ];
-  
-  var list2 = [
-    ["value1", "value2", "value3"],
-    ["value10", "value11", "value12"],
-    ["value4", "value5", "value6"]
-  ];
-  
+function findNewSublists(list1, list2) {
   // Create a new list to hold the new sublists
   var newSublists = [];
-  
+
   // Function to check if two sublists are equal
   function areSublistsEqual(sublist1, sublist2) {
     if (sublist1.length !== sublist2.length) {
@@ -27,7 +14,7 @@ function findNewSublists() {
     }
     return true;
   }
-  
+
   // Iterate through each sublist in list1
   for (var i = 0; i < list1.length; i++) {
     var found = false;
@@ -41,8 +28,6 @@ function findNewSublists() {
       newSublists.push(list1[i]);
     }
   }
-  
-  // Log the new sublists
-  Logger.log("New sublists: " + JSON.stringify(newSublists));
-}
 
+  return newSublists;
+}
