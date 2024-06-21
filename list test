@@ -1,29 +1,14 @@
-function findNewSublists(list1, list2) {
-  // Create a new list to hold the new sublists
-  var newSublists = [];
-
-  // Function to check if two sublists are equal
-  function areSublistsEqual(sublist1, sublist2) {
-    if (sublist1.length !== sublist2.length) {
-      return false;
-    }
-    for (var i = 0; i < sublist1.length; i++) {
-      if (sublist1[i] !== sublist2[i]) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  // Iterate through each sublist in list1
   for (var i = 0; i < list1.length; i++) {
     var found = false;
+    // Iterate through each sublist in list2 to compare with list1[i]
     for (var j = 0; j < list2.length; j++) {
-      if (areSublistsEqual(list1[i], list2[j])) {
+      // Compare specific values (for example, list1[i][1] === list2[j][1])
+      if (list1[i][1] === list2[j][1]) {
         found = true;
         break;
       }
     }
+    // If list1[i] was not found in list2, add it to newSublists
     if (!found) {
       newSublists.push(list1[i]);
     }
