@@ -1,3 +1,8 @@
+function findNewSublists(list1, list2) {
+  // Create a new list to hold the new sublists
+  var newSublists = [];
+
+  // Iterate through each sublist in list1
   for (var i = 0; i < list1.length; i++) {
     var found = false;
     // Iterate through each sublist in list2 to compare with list1[i]
@@ -16,3 +21,5 @@
 
   return newSublists;
 }
+
+// Example usag
