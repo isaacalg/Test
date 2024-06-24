@@ -1,0 +1,193 @@
+const sourceSheetId = "1BHb7lwIy6f1vxjmDXWCoIXCkJOjx3J_yaeGwN-H2gUI";
+
+/**
+ * 
+ */
+function onEdit(e) {
+  const range = e.range;
+  const col = range.getColumn();
+  const row = range.getRow();
+  const sheet = e.source.getActiveSheet();
+  const sheetName = sheet.getName();
+
+  if(sheetName == 'LLR Tracker' ){
+    if(row != 1 && col < 6) {
+      const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+      const sheet = spreadsheet.getSheets()[0]
+      const timeStamp = new Date();
+      const modifiedBy = Session.getActiveUser().getEmail();
+      sheet.getRange(row,6).setValue(timeStamp);
+      sheet.getRange(row,7).setValue(modifiedBy);
+    }
+    rowBackgroundUpdate(0, row, 5, "IN PROGRESS", "READY FOR REVIEW");
+    formatAllRows(0, 5, "IN PROGRESS", "READY FOR REVIEW");
+
+  } else if (sheetName === "LLR Review") { // Check if it's the "Reviewed LLRs" sheet
+    if (row !== 1 && col < 7) {
+      const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+      const targetSheet = spreadsheet.getSheets()[1]; // This is sheet 1 ("LLR Reviewed")
+      const timeStamp = new Date();
+      const modifiedBy = Session.getActiveUser().getEmail();
+      targetSheet.getRange(row, 7).setValue(timeStamp);
+      targetSheet.getRange(row, 8).setValue(modifiedBy);
+    }
+    rowBackgroundUpdate(1, row, 6, "REVIEWING", "REVIEWED");
+    formatAllRows(1, 6, "REVIEWING", "REVIEWED");
+  }
+}
+
+/**
+ * 
+ */
+function updateTrackerList() {
+  const sourceSheet =  SpreadsheetApp.openById(sourceSheetId).getSheets()[0];
+  const trackerSheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  const sourceList  = sourceSheet.getDataRange().getValues().slice(1);
+  const trackerList = getSheetsData(0, 1);
+
+  let valuesToAdd = findUniqueValues(sourceList, trackerList, 1);
+
+  if(valuesToAdd.length > 0){
+    valuesToAdd.forEach(function(row){
+    console.log(row)
+    trackerSheet.appendRow(row);
+    })
+  }
+
+  const timeStamp = new Date();
+  trackerSheet.getRange(1,10).setValue(timeStamp);
+}
+
+/**
+ * 
+ */
+function updateToReviewList(){
+  const trackerSheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  const reviewSheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[1];
+  const trackerList = getSheetsData(0, 1);
+  const reviewedList = getSheetsData(1, 1);
+  let newReviewList = []
+
+  trackerList.forEach(function(row){
+    if(row[3].toString().toUpperCase() === "TRUE" && row[4].toString().toUpperCase() === "READY FOR REVIEW" ) {
+      newReviewList.push(row);
+    }
+  })
+  
+  //Find ready for review files and add to reviewedlist
+  const toReviewList = findUniqueValues(newReviewList, reviewedList, 1);
+  toReviewList.forEach(function(row){
+    let selectedRange = row.slice(0, 5)
+    reviewSheet.appendRow(selectedRange);
+  })
+
+  console.log(toReviewList)
+
+
+  reviewedList.forEach(function(reviewRow){
+    let index = 2;
+    trackerList.forEach(function(trackerRow){
+      if(reviewRow[1] === trackerRow[1] && (reviewRow[4] != trackerRow[4] || reviewRow[3] != trackerRow[3])){
+        reviewSheet.deleteRow(index);
+      }
+    })
+    index++;
+  })
+
+  const timeStamp = new Date();
+  trackerSheet.getRange(2,10).setValue(timeStamp);
+}
+
+
+/**
+ * 
+ */
+function updateTrueValue(){
+  const sourceSheet =  SpreadsheetApp.openById(sourceSheetId).getSheets()[0];
+  const trackerSheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  const sourceList  = sourceSheet.getDataRange().getValues().slice(1);
+  const trackerList = getSheetsData(0, 2);
+
+  let valuesToChange = [];
+  console.log("Source first item: " +  sourceList[0])
+  console.log("Tracker first item: " + trackerList[1])
+  for(let i = 0; i < sourceList.length; i++){
+    let found = false;
+    for(let j = 2; j < trackerList.length; j++){
+      if(sourceList[i][1] === trackerList[j][1] && sourceList[i][3] === trackerList[j][3]){
+        found = true; 
+        break;
+      }
+    }
+    if(!found){
+      valuesToChange.push(sourceList[i])
+    }
+  }
+
+  console.log(valuesToChange)
+}
+/**
+ * 
+ */
+function getSheetsData(sheetNumber, sliceNum){
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = spreadsheet.getSheets()[sheetNumber];
+  const list = sheet.getDataRange().getValues().slice(sliceNum);
+  return list
+}
+
+/**
+ * 
+ */
+function findUniqueValues(list1, list2, index){ 
+  let uniqueValues = [];//create a new list to hold the new values added
+
+  for (let i = 0; i < list1.length; i++) {
+    let found = false;
+    for (let j = 0; j < list2.length; j++) {
+      if (list1[i][index] === list2[j][index]) {
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      uniqueValues.push(list1[i]);
+    }
+  }
+  return uniqueValues
+}
+
+/**
+ * 
+ */
+function rowBackgroundUpdate(sheetNumber,row, column, statusA, statusB) {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = spreadsheet.getSheets()[sheetNumber]
+  const status = sheet.getRange(row, column).getValue().toString().toUpperCase(); //get value from column E (dropdown)
+
+  let color;
+  if (status === statusA) {
+    color = "#ffd966"; // yellow background "Working"
+  } else if (status === statusB) {
+    color = "#b6d7a8"; //green background "Up to date"
+  } else {
+    color = "white"; //white background  other values
+  }
+  sheet.getRange(row, 1, 1, column).setBackground(color);//apply color to the entire row (columns A:E)
+}
+
+/**
+ * 
+ */
+function formatAllRows(sheetNumber,column, statusA, statusB) {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = spreadsheet.getSheets()[sheetNumber]
+  const lastRow = sheet.getLastRow(); // Get the last row with data
+
+  for (let row = 2; row <= lastRow; row++) {
+    rowBackgroundUpdate(sheetNumber, row, column, statusA, statusB);
+  }
+}
+
+
