@@ -2,11 +2,13 @@
 Author: Isaac Alvarado.
 */
 
-function onEdit(e) {
+
+function installableOnEditLibrary(e){
   const range = e.range; //range of active cell
   const sheet = e.source.getActiveSheet(); //get active sheet
   const sheetName = sheet.getName(); //get sheet name
   const startRow = range.getRow(); //row edited ange starts
+  const startCol = range.getColumn(); //row edited ange starts
   const numRows = range.getNumRows(); //total rows on edited range
   const numCols = range.getNumColumns(); //total columns on edited range
 
@@ -19,7 +21,7 @@ function onEdit(e) {
     const sheet = spreadsheet.getSheets()[0]
     for (let row = 0; row < numRows; row++) {
       for (let col = 0; col < numCols; col++) {
-        const cell = sheet.getRange(startRow + row, range.getColumn() + col);
+        const cell = sheet.getRange(startRow + row, startCol + col);
         handleEdit(cell, startRow + row);
       }
     }
@@ -27,17 +29,17 @@ function onEdit(e) {
   }
 
   if(sheetName == 'Device List' ){
-    if(row != 1 && col < 6) {
+    if(startRow != 1 && startCol < 6) {
       const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
       const sheet = spreadsheet.getSheets()[0]
       const timeStamp = new Date();
       const modifiedBy = Session.getActiveUser().getEmail();
-      sheet.getRange(row,6).setValue(timeStamp);
-      sheet.getRange(row,7).setValue(modifiedBy);
+      sheet.getRange(startRow,6).setValue(timeStamp);
+      sheet.getRange(startRow,7).setValue(modifiedBy);
     }
-
   }
 }
+
 
 /**@handleEdits
  * Handles single cell edits
