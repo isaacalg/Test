@@ -2,42 +2,42 @@
 Author: Isaac Alvarado.
 */
 
-function onEdit(e) {
+
+function installableOnEditLibrary(e){
   const range = e.range; //range of active cell
   const sheet = e.source.getActiveSheet(); //get active sheet
   const sheetName = sheet.getName(); //get sheet name
   const startRow = range.getRow(); //row edited ange starts
+  const startCol = range.getColumn(); //row edited ange starts
   const numRows = range.getNumRows(); //total rows on edited range
   const numCols = range.getNumColumns(); //total columns on edited range
 
   /*
     Iterates through each edited cell  callin @handelEdit
     Ensures multi-edits are handle correctly 
+    Applys timeStamp & modifiedBy
   */
   if (sheetName === 'Device List') {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = spreadsheet.getSheets()[0]
+    
     for (let row = 0; row < numRows; row++) {
       for (let col = 0; col < numCols; col++) {
-        const cell = sheet.getRange(startRow + row, range.getColumn() + col);
+        const cell = sheet.getRange(startRow + row, startCol + col);
         handleEdit(cell, startRow + row);
+      }
+    }
+    if(startRow != 1 && startCol < 6) {
+      const timeStamp = new Date();
+      const modifiedBy = Session.getActiveUser().getEmail();
+      for(let row = 0; row < numRows; row++){
+        sheet.getRange(startRow + row,6).setValue(timeStamp);
+        sheet.getRange(startRow + row,7).setValue(modifiedBy);
       }
     }
     columnsFilled(0);
   }
 
-  if(sheetName == 'Device List' ){
-    if(row != 1 && col < 6) {
-      const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-      const sheet = spreadsheet.getSheets()[0]
-      const timeStamp = new Date();
-      const modifiedBy = Session.getActiveUser().getEmail();
-      sheet.getRange(row,6).setValue(timeStamp);
-      sheet.getRange(row,7).setValue(modifiedBy);
-    }
-
-  }
 }
+
 
 /**@handleEdits
  * Handles single cell edits
@@ -47,19 +47,7 @@ function onEdit(e) {
  */
 
 function handleEdit(cell, row) {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = spreadsheet.getSheets()[0];
   const col = cell.getColumn();
-
-  /*
-    Update "Last modified on" time stamp and "Modified by" for edited rows
-  */
-  // if (col < 6 && row !== 1) {
-  //   const timeStamp = new Date();
-  //   sheet.getRange(row, 6).setValue(timeStamp);
-  //   const modifiedBy = Session.getActiveUser().getEmail();
-  //   sheet.getRange(row, 7).setValue(modifiedBy);
-  // }
 
   /*
     All CAPS columns A, D & E
@@ -131,8 +119,6 @@ function markDuplicates(range, currentRow) {
  * @param {number} row - current row number.
  */
 function handleLabel(range, row) {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = spreadsheet.getSheets()[0]
   const cellValue = range.getValue(); //edited cell on column A
   const nextCell = range.offset(0, 1); //cell adjacent to cellValue on column B
   const unique = isUniqueLabel(cellValue, row); //calls isUniqueLabel() function
