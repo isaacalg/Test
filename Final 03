@@ -1,0 +1,233 @@
+function installableOnEditLibrary(e) {
+  const sheet = e.source.getActiveSheet(); // Get active sheet
+  const range = e.range; //range of active cell
+  const editedRange = e.range;
+  const col = editedRange.getColumn();
+  const startRow = range.getRow(); //row edited ange starts
+  const startCol = range.getColumn(); //row edited ange starts
+  const numRows = range.getNumRows(); //total rows on edited range
+  
+  // Check if the edited cell is in column A
+  if (col === 1) {
+    const duplicateRanges = getDuplicateRanges(sheet);
+
+    markDuplicates(sheet, duplicateRanges);
+    validateLabels(sheet, duplicateRanges);
+    updateAllLabels(sheet, duplicateRanges);
+  }
+
+  if(startRow != 1 && startCol < 6) {
+    const timeStamp = new Date();
+    const modifiedBy = Session.getActiveUser().getEmail();
+
+    for(let row = 0; row < numRows; row++){
+      sheet.getRange(startRow + row,6).setValue(timeStamp);
+      sheet.getRange(startRow + row,7).setValue(modifiedBy);
+    }
+  }
+
+  columnsFilled(sheet);
+}
+
+// Function to clear label and background in column B
+function clearLabel(range) {
+  const nextCell = range.offset(0, 1); // Cell in column B adjacent to edited cell
+  nextCell.clearContent().setBackground("white"); // Clear content and set background to white
+  range.setBackground("white"); // Set background of edited cell to white
+}
+
+// Function to set the label in the adjacent cell in column B
+function setLabel(range) {
+  const cellValue = range.getValue().trim(); // Edited cell on column A (trimmed to remove leading/trailing spaces)
+  const nextCell = range.offset(0, 1); // Cell adjacent to cellValue on column B
+  let label;
+  let color = "white";
+
+  // Determines the label and color based on the format of the cellValue
+  if (/^CR [A-Za-z0-9]+-[0-9]{2,}$/.test(cellValue)) {
+    label = "Access";
+    nextCell.setValue(label).setBackground(color); 
+    range.setBackground(color);
+  } else if (/^CAM [A-Za-z0-9]+-[0-9]{2,}$/.test(cellValue)) {
+    label = "CCTV";
+    nextCell.setValue(label).setBackground(color); 
+    range.setBackground(color);
+  } else if (/^I [A-Za-z0-9]+-[0-9]{2,}$/.test(cellValue)) {
+    label = "Intercom";
+    nextCell.setValue(label).setBackground(color); 
+    range.setBackground(color);
+  } else if (/^M [A-Za-z0-9]+-[0-9]{2,}$/.test(cellValue)) {
+    label = "Monitor Point";
+    nextCell.setValue(label).setBackground(color); 
+    range.setBackground(color);
+  } else {
+    label = "INCORRECT LABEL";
+    color = "#f9cb9c";
+    nextCell.setValue(label).setBackground(color); 
+    range.setBackground(color);
+  }
+}
+
+// Function to validate labels and types
+function validateLabels(sheet, duplicateRanges) {
+  const lastRow = sheet.getLastRow();
+  const dataRange = sheet.getRange(2, 1, lastRow - 1, 2); // Range A2:B to the last row
+  const dataValues = dataRange.getValues();
+
+  for (let i = 0; i < dataValues.length; i++) {
+    const label = dataValues[i][0].trim();
+    let currentType = dataValues[i][1].trim();
+    const range = sheet.getRange(i + 2, 2); // Column B for the current row (i + 2 because of header row)
+
+    let expectedType;
+    let color = "white";
+
+    // Determine expected type based on label
+    if (/^CR [A-Za-z0-9]+-[0-9]{2,}$/.test(label)) {
+      expectedType = "Access";
+    } else if (/^CAM [A-Za-z0-9]+-[0-9]{2,}$/.test(label)) {
+      expectedType = "CCTV";
+    } else if (/^I [A-Za-z0-9]+-[0-9]{2,}$/.test(label)) {
+      expectedType = "Intercom";
+    } else if (/^M [A-Za-z0-9]+-[0-9]{2,}$/.test(label)) {
+      expectedType = "Monitor Point";
+    } else {
+      expectedType = "INCORRECT LABEL";
+      color = "#f9cb9c";
+    }
+
+    // Compare current type with expected type and update if necessary
+    if (currentType !== expectedType && !duplicateRanges.includes(i + 1)) {
+      range.setValue(expectedType).setBackground(color);
+    }
+  }
+}
+
+// Function to get duplicates and return list of ranges
+function getDuplicateRanges(sheet) {
+  var data = sheet.getRange("A2:A" + sheet.getLastRow()).getValues(); // Get all values in column A
+  var duplicateCount = {};
+  var duplicateRanges = [];
+
+  // Count occurrences of each non-blank value
+  for (var i = 0; i < data.length; i++) {
+    var value = data[i][0];
+    if (value !== "") {
+      if (duplicateCount[value]) {
+        duplicateCount[value].count++;
+        duplicateCount[value].rows.push(i + 2); // Adjust for header row
+      } else {
+        duplicateCount[value] = { count: 1, rows: [i + 2] }; // Adjust for header row
+      }
+    }
+  }
+
+  // Collect ranges of duplicates
+  for (var key in duplicateCount) {
+    if (duplicateCount[key].count > 1) {
+      duplicateRanges = duplicateRanges.concat(duplicateCount[key].rows);
+    }
+  }
+
+  return duplicateRanges;
+}
+
+// Function to update all labels within the total range of non-empty values
+function updateAllLabels(sheet, duplicateRanges) {
+  const lastRow = sheet.getLastRow();
+  const dataRange = sheet.getRange(2, 1, lastRow - 1, 1); // Ignore header row
+  const values = dataRange.getValues();
+
+  for (let i = 0; i < values.length; i++) {
+    const row = i + 2; // Adjust for header row
+    const cellValue = values[i][0];
+    const range = sheet.getRange(row, 1);
+
+    if (cellValue !== "" && isNotDuplicate(range, duplicateRanges)) {
+      const nextCell = range.offset(0, 1); // Cell adjacent to cellValue on column B
+      if (nextCell.getValue() === "") {
+        setLabel(range);
+      } else if (nextCell.getValue() === "INCORRECT LABEL" && !/^INCORRECT LABEL$/.test(cellValue)) {
+        setLabel(range);
+      }
+    } else if (cellValue === "") {
+      clearLabel(range); // Clear label and background if cell is empty
+    }
+  }
+}
+
+// Function to check if a cell is not in the list of duplicate ranges
+function isNotDuplicate(range, duplicateRanges) {
+  return !duplicateRanges.includes(range.getRow());
+}
+
+// Function to mark duplicates in column B based on the list of ranges
+function markDuplicates(sheet, duplicateRanges) {
+  const dataRange = sheet.getRange("A2:B" + sheet.getLastRow()); // Get range A2:B to the last row
+  const dataValues = dataRange.getValues();
+
+  for (let i = 0; i < dataValues.length; i++) {
+    const row = i + 2; // Adjust for header row
+    const cellA = dataValues[i][0];
+    const cellB = dataValues[i][1];
+    const value = "DUPLICATE LABEL"
+    
+    if (cellA !== "" && duplicateRanges.includes(row)) {
+      if (cellB !== value) {
+        sheet.getRange("B" + row).setValue(value).setBackground("#ea9999");
+      }
+    } else {
+      if (cellB === value) {
+        sheet.getRange("B" + row).clearContent().setBackground("white");
+      }
+    }
+  }
+}
+
+
+/**@columnsFilled
+ * Applies conditional formating to columns
+ * @param {GoogleAppscript.Spreadsheet.Sheet} sheet - active sheet.
+ */
+function columnsFilled(sheet) {
+  const data = sheet.getRange("A2:A" + sheet.getLastRow()).getValues();
+
+  for (let row = 0; row < data.length; row++) {
+    const valueA = data[row][0];
+    const rowIndex = row + 2; //header row
+    const cells = [
+      sheet.getRange("A" + rowIndex),
+      sheet.getRange("B" + rowIndex),
+      sheet.getRange("C" + rowIndex),
+      sheet.getRange("D" + rowIndex),
+      sheet.getRange("E" + rowIndex),
+    ];
+
+    //If cell in column A is empty, set cells from columns A & B to white
+    if (!valueA) {
+      cells[0].setBackground("white");
+      cells[1].setBackground("white");
+    }
+    
+    updateCellBackgroundAndNote(cells[2], valueA, "Please change status", "#f9cb9c"); //calls updateCellBackgroundAndNote Function and applies format based on valueof column A for column C
+    updateCellBackgroundAndNote(cells[3], valueA, "Please add Project Name (CDRXXXXX)", "#f9cb9c"); //calls updateCellBackgroundAndNote Function and applies format based on valueof column A for column D
+    updateCellBackgroundAndNote(cells[4], valueA, "Please add Stage (STAGE X)", "#f9cb9c"); //calls updateCellBackgroundAndNote Function and applies format based on valueof column A for column E
+  }
+}
+
+/**@updateCellBackgroundAndNote
+ * Updates background color and add a note based on condition
+ * @param {GoogleAppscript.Spreadsheet.Range} cell - cell to update.
+ * @param {any} condition - condition to check. 
+ * @param {string} note - note to be added to cell. 
+ * @param {string} color - hex color to be added to background
+ */
+function updateCellBackgroundAndNote(cell, condition, note, color) {
+  if (condition && !cell.getValue()) {
+    cell.setBackground(color);
+    cell.setNote(note);
+  } else {
+    cell.setBackground("white");
+    cell.clearNote();
+  }
+}
